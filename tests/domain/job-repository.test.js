@@ -13,6 +13,8 @@ function fakePool() {
       if (sql.includes("SELECT id FROM ranking_snapshots")) return { rows: [] };
       if (sql.includes("FROM store_listings WHERE store")) return { rows: [{ externalId: "730", gameId: "game-cs" }] };
       if (sql.includes("INSERT INTO ranking_snapshots")) return { rows: [{ id: "snapshot-1" }] };
+      if (sql.includes("FROM store_listings sl WHERE sl.store")) return { rows: [{ listingId: "listing-1", externalId: "1245620" }] };
+      if (sql.includes("INSERT INTO store_prices")) return { rows: [] };
       return { rows: [] };
     }),
     release: vi.fn(),
@@ -50,5 +52,16 @@ describe("job repository", () => {
     }));
     expect(pool.queries.some(({ sql }) => sql.includes("INSERT INTO ranking_snapshots"))).toBe(true);
     expect(pool.queries.some(({ sql }) => sql.includes("INSERT INTO ranking_entries"))).toBe(true);
+  });
+
+  it("lista listagens de uma loja e grava preços", async () => {
+    const pool = fakePool();
+    const repository = await createJobRepository({ pool });
+    const listings = await repository.listStoreListings("steam");
+    expect(listings).toEqual([{ listingId: "listing-1", externalId: "1245620" }]);
+    await repository.withAdvisoryLock("prices", () => repository.upsertPrices([
+      { listingId: "listing-1", currency: "BRL", initialAmount: 24999, finalAmount: 19999, discountPercent: 20, isFree: false },
+    ], { capturedAt: new Date("2026-08-24T12:00:00Z") }));
+    expect(pool.queries.some(({ sql }) => sql.includes("INSERT INTO store_prices"))).toBe(true);
   });
 });

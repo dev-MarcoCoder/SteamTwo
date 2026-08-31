@@ -58,6 +58,26 @@ export function createRepositories(pool) {
           FROM store_listings sl WHERE sl.store = $1 AND sl.external_id = ANY($2::text[])`, [store, externalIds.map(String)]);
         return result.rows;
       },
+      async listByStore(store, client = pool) {
+        const result = await client.query(`SELECT sl.id AS "listingId", sl.external_id AS "externalId"
+          FROM store_listings sl WHERE sl.store = $1`, [store]);
+        return result.rows;
+      },
+    },
+    prices: {
+      async upsert(entries, { capturedAt } = {}, client = pool) {
+        for (const entry of entries) {
+          await client.query(`
+            INSERT INTO store_prices (store_listing_id, currency, initial_amount, final_amount, discount_percent, is_free, checked_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (store_listing_id) DO UPDATE SET
+              currency = EXCLUDED.currency, initial_amount = EXCLUDED.initial_amount, final_amount = EXCLUDED.final_amount,
+              discount_percent = EXCLUDED.discount_percent, is_free = EXCLUDED.is_free, checked_at = EXCLUDED.checked_at, updated_at = now()
+          `, [entry.listingId, entry.currency ?? "BRL", entry.initialAmount ?? null, entry.finalAmount ?? null,
+            entry.discountPercent ?? 0, Boolean(entry.isFree), capturedAt]);
+        }
+        return { records: entries.length, capturedAt };
+      },
     },
     snapshots: {
       async insert({ source, status, capturedAt, totalEntries = 0, syncRunId = null, entries = [] }) {

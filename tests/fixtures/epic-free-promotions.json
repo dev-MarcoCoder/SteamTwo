@@ -1,0 +1,34 @@
+{
+  "data": {
+    "Catalog": {
+      "searchStore": {
+        "elements": [
+          {
+            "id": "fortnite",
+            "productSlug": "fortnite",
+            "urlSlug": "fortnite",
+            "price": {
+              "totalPrice": {
+                "currencyCode": "BRL",
+                "originalPrice": 0,
+                "discountPrice": 0
+              }
+            }
+          },
+          {
+            "id": "hades",
+            "productSlug": "hades",
+            "urlSlug": "hades",
+            "price": {
+              "totalPrice": {
+                "currencyCode": "BRL",
+                "originalPrice": 7999,
+                "discountPrice": 3999
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

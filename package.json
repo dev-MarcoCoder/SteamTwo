@@ -14,6 +14,7 @@
     "sync:catalog": "node server/jobs/cli.js catalog",
     "sync:rankings": "node server/jobs/cli.js rankings",
     "sync:popularity": "node server/jobs/cli.js popularity",
+    "sync:prices": "node server/jobs/cli.js prices",
     "test": "vitest run tests/api tests/domain tests/integrations",
     "test:watch": "vitest",
     "test:sites": "node --test tests/sites-worker.test.mjs"

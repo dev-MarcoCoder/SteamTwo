@@ -6,6 +6,17 @@
     <meta name="description" content="SteamTwo: catálogo e rankings transparentes de jogos da Steam e Epic Games." />
     <meta name="theme-color" content="#080c11" />
     <title>SteamTwo — Catálogo e rankings de jogos</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("steamtwo:theme");
+          var theme = stored || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          document.documentElement.dataset.theme = theme;
+        } catch (error) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

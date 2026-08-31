@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateSnapshotScore, calculateScoresByGame, calculateWeeklyScores, createAllTimeRanking, normalizePosition } from "../../server/domain/ranking/index.js";
+import { buildPopularityHistory, calculateSnapshotScore, calculateScoresByGame, calculateWeeklyScores, createAllTimeRanking, normalizePosition } from "../../server/domain/ranking/index.js";
 
 describe("SteamTwo Index", () => {
   it("normaliza posições pelo tamanho do ranking", () => {
@@ -45,5 +45,30 @@ describe("SteamTwo Index", () => {
   it("usa popularidade da IGDB para ranking histórico", () => {
     expect(createAllTimeRanking([{ id: "b", igdbPopularity: 4 }, { id: "a", igdbPopularity: 4 }]))
       .toMatchObject([{ gameId: "a", rank: 1, source: "igdb" }, { gameId: "b", rank: 2 }]);
+  });
+
+  it("monta histórico diário combinando fontes do mesmo dia", () => {
+    const rows = [
+      { source: "steam", capturedAt: "2026-08-24T03:00:00Z", totalEntries: 10, position: 1 },
+      { source: "epic", capturedAt: "2026-08-24T03:05:00Z", totalEntries: 10, position: 5 },
+    ];
+    expect(buildPopularityHistory(rows)).toEqual([
+      { date: "2026-08-24", score: 80, sources: { steam: 100, epic: 60 } },
+    ]);
+  });
+
+  it("histórico conta jogo ausente num snapshot válido como zero", () => {
+    const rows = [{ source: "steam", capturedAt: "2026-08-24T03:00:00Z", totalEntries: 10, position: null }];
+    expect(buildPopularityHistory(rows)).toEqual([
+      { date: "2026-08-24", score: 0, sources: { steam: 0 } },
+    ]);
+  });
+
+  it("histórico exclui dias sem nenhum snapshot e ordena por data", () => {
+    const rows = [
+      { source: "steam", capturedAt: "2026-08-25T03:00:00Z", totalEntries: 10, position: 1 },
+      { source: "steam", capturedAt: "2026-08-23T03:00:00Z", totalEntries: 10, position: 10 },
+    ];
+    expect(buildPopularityHistory(rows).map((point) => point.date)).toEqual(["2026-08-23", "2026-08-25"]);
   });
 });

@@ -1,7 +1,22 @@
-import { mockGames, mockUpdatedAt } from "../mock/games.js";
+import { buildPopularityHistory } from "../domain/ranking/index.js";
+import { mockGames, mockHistoryFor, mockUpdatedAt } from "../mock/games.js";
 
 const storeMatches = (game, store) =>
   store === "all" || game.stores.some((listing) => listing.store === store);
+
+function bestPromotion(prices = []) {
+  if (!prices.length) return null;
+  const free = prices.find((price) => price.isFree);
+  if (free) return free;
+  return prices.reduce((best, price) => (!best || price.discountPercent > best.discountPercent ? price : best), null);
+}
+
+function matchesPromoFilter(promotion, filter) {
+  if (filter === "free") return promotion.isFree;
+  if (filter === "half-price") return promotion.isFree || promotion.discountPercent >= 50;
+  if (filter === "on-sale") return promotion.isFree || promotion.discountPercent > 0;
+  return true;
+}
 
 function rankingView(game, index, field = "score") {
   return {
@@ -94,6 +109,36 @@ export function createCatalogService({ repository } = {}) {
     async game(slug) {
       const game = (await source.listGames()).find((item) => item.slug === slug);
       return game ? { ...game, updatedAt: mockUpdatedAt } : null;
+    },
+
+    async gameHistory(slug, { days = 90 } = {}) {
+      if (!repository?.getPopularityHistory) {
+        return { slug, days, points: mockHistoryFor(slug), sourceStatus: { steam: "fresh", epic: "fresh" }, updatedAt: mockUpdatedAt };
+      }
+      const rows = await repository.getPopularityHistory(slug, { days });
+      return {
+        slug,
+        days,
+        points: buildPopularityHistory(rows),
+        sourceStatus: { steam: "fresh", epic: "fresh" },
+        updatedAt: new Date().toISOString(),
+      };
+    },
+
+    async promotions({ store = "all", filter = "all", page = 1, limit = 20 } = {}) {
+      const games = (await source.listGames()).filter((game) => storeMatches(game, store));
+      const withPromotion = games
+        .map((game) => ({ ...game, promotion: bestPromotion(game.prices) }))
+        .filter((game) => game.promotion && matchesPromoFilter(game.promotion, filter))
+        .sort((a, b) => (Number(b.promotion.isFree) - Number(a.promotion.isFree)) || (b.promotion.discountPercent - a.promotion.discountPercent));
+      const start = (page - 1) * limit;
+      return {
+        items: withPromotion.slice(start, start + limit),
+        pagination: { page, limit, total: withPromotion.length, pages: Math.ceil(withPromotion.length / limit) },
+        filters: { store, filter },
+        sourceStatus: { steam: "fresh", epic: "partial" },
+        updatedAt: mockUpdatedAt,
+      };
     },
   };
 }

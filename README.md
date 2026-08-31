@@ -44,6 +44,7 @@ Para enriquecer o catálogo com a IGDB, preencha `TWITCH_CLIENT_ID` e `TWITCH_CL
 npm run sync:catalog
 npm run sync:rankings
 npm run sync:popularity
+npm run sync:prices
 ```
 
 ## Verificação

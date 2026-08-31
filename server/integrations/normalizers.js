@@ -51,6 +51,42 @@ export function normalizeSteamEntries(payload, metric = "concurrent_players") {
   })).filter((item) => item.externalId && item.externalId !== "undefined");
 }
 
+/** Steam's public appdetails endpoint returns { "<appid>": { success, data } }. */
+export function normalizeSteamPrice(payload, appId) {
+  const entry = payload?.[String(appId)];
+  if (!entry?.success) return null;
+  const overview = entry.data?.price_overview;
+  const isFree = Boolean(entry.data?.is_free);
+  if (!overview && !isFree) return null;
+  return {
+    externalId: String(appId),
+    currency: overview?.currency ?? "BRL",
+    initialAmount: overview?.initial ?? 0,
+    finalAmount: overview?.final ?? 0,
+    discountPercent: overview?.discount_percent ?? 0,
+    isFree,
+  };
+}
+
+/** Epic's public freeGamesPromotions endpoint; covers Epic's promoted/free catalog, not a full price sweep. */
+export function normalizeEpicPromotions(payload) {
+  const elements = payload?.data?.Catalog?.searchStore?.elements ?? [];
+  return elements.map((item) => {
+    const total = item.price?.totalPrice;
+    const originalPrice = total?.originalPrice ?? 0;
+    const discountPrice = total?.discountPrice ?? originalPrice;
+    const discountPercent = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
+    return {
+      externalId: String(item.id ?? item.productSlug ?? item.urlSlug ?? ""),
+      currency: total?.currencyCode ?? "BRL",
+      initialAmount: originalPrice,
+      finalAmount: discountPrice,
+      discountPercent,
+      isFree: discountPrice === 0,
+    };
+  }).filter((item) => item.externalId);
+}
+
 export function normalizeEpicEntries(items) {
   return items.map((item, index) => ({
     store: "epic",

@@ -6,6 +6,8 @@ const storeSchema = z.enum(["all", "steam", "epic"]).default("all");
 const periodSchema = z.enum(["now", "week", "all-time"]).default("now");
 const pageSchema = z.coerce.number().int().min(1).default(1);
 const limitSchema = z.coerce.number().int().min(1).max(100).default(20);
+const promoFilterSchema = z.enum(["all", "on-sale", "half-price", "free"]).default("all");
+const daysSchema = z.coerce.number().int().min(7).max(180).default(90);
 
 const methodology = {
   name: "Índice SteamTwo",
@@ -78,6 +80,32 @@ export function createApiRouter({ catalogService = createCatalogService(), healt
       return response.json(game);
     } catch (error) {
       return next(error);
+    }
+  });
+
+  router.get("/games/:slug/history", async (request, response, next) => {
+    try {
+      const slug = z.string().regex(/^[a-z0-9-]+$/).parse(request.params.slug);
+      const { days } = z.object({ days: daysSchema }).parse(request.query);
+      const game = await catalogService.game(slug);
+      if (!game) return response.status(404).json({ error: "Jogo não encontrado" });
+      return response.json(await catalogService.gameHistory(slug, { days }));
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.get("/promotions", async (request, response, next) => {
+    try {
+      const query = z.object({
+        store: storeSchema,
+        filter: promoFilterSchema,
+        page: pageSchema,
+        limit: limitSchema,
+      }).parse(request.query);
+      response.json(await catalogService.promotions(query));
+    } catch (error) {
+      next(error);
     }
   });
 

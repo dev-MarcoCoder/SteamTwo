@@ -1,12 +1,12 @@
 import { config } from "../config.js";
 import { createEpicClient, createIgdbClient, createSteamClient } from "../integrations/index.js";
-import { syncCatalog, syncPopularity, syncRankings } from "./index.js";
+import { syncCatalog, syncPopularity, syncPrices, syncRankings } from "./index.js";
 
 const command = process.argv[2];
-const commands = new Set(["catalog", "rankings", "popularity"]);
+const commands = new Set(["catalog", "rankings", "popularity", "prices"]);
 
 if (!commands.has(command)) {
-  console.error("Uso: node server/jobs/cli.js <catalog|rankings|popularity>");
+  console.error("Uso: node server/jobs/cli.js <catalog|rankings|popularity|prices>");
   process.exitCode = 1;
 } else {
   try {
@@ -21,7 +21,9 @@ if (!commands.has(command)) {
       ? await syncCatalog({ repository, igdb })
       : command === "popularity"
         ? await syncPopularity({ repository, igdb })
-        : await syncRankings({ repository, steam, epic });
+        : command === "prices"
+          ? await syncPrices({ repository, steam, epic })
+          : await syncRankings({ repository, steam, epic });
     console.log(JSON.stringify(result));
   } catch (error) {
     console.error(`Falha no sync ${command}: ${error.message}`);

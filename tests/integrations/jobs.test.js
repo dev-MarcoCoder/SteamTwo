@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { syncCatalog, syncPopularity, syncRankings } from "../../server/jobs/index.js";
+import { syncCatalog, syncPopularity, syncPrices, syncRankings } from "../../server/jobs/index.js";
 
-function repository({ locked = true } = {}) {
+function repository({ locked = true, steamListings = [], epicListings = [] } = {}) {
   return {
     withAdvisoryLock: vi.fn(async (_key, callback) => locked ? callback() : false),
     startSyncRun: vi.fn(async () => ({ id: "run-1" })),
@@ -9,6 +9,8 @@ function repository({ locked = true } = {}) {
     upsertCatalogGames: vi.fn(async () => {}),
     replaceRankingSnapshot: vi.fn(async () => {}),
     upsertHistoricalPopularity: vi.fn(async () => {}),
+    listStoreListings: vi.fn(async (store) => (store === "steam" ? steamListings : epicListings)),
+    upsertPrices: vi.fn(async () => {}),
   };
 }
 
@@ -44,5 +46,34 @@ describe("sync jobs", () => {
     expect(result).toMatchObject({ records: 2, sources: { steam: 1, epic: 1 } });
     expect(repo.replaceRankingSnapshot).toHaveBeenCalledWith(expect.objectContaining({ source: "steam", entries: [expect.objectContaining({ rank: 1, metric: 20 })] }));
     expect(repo.replaceRankingSnapshot).toHaveBeenCalledWith(expect.objectContaining({ source: "epic" }));
+  });
+
+  it("busca preços Steam por listagem e cruza promoções Epic por externalId", async () => {
+    const repo = repository({
+      steamListings: [{ listingId: "l-1", externalId: "730" }, { listingId: "l-2", externalId: "999" }],
+      epicListings: [{ listingId: "l-3", externalId: "fortnite" }, { listingId: "l-4", externalId: "unknown" }],
+    });
+    const result = await syncPrices({
+      repository: repo,
+      now: clock,
+      steam: { getAppPrice: vi.fn(async (id) => (id === "730" ? { externalId: "730", discountPercent: 10, isFree: false } : null)) },
+      epic: { getFreeGamesPromotions: vi.fn(async () => [{ externalId: "fortnite", discountPercent: 0, isFree: true }]) },
+    });
+    expect(result).toMatchObject({ status: "success", records: 2, sources: { steam: 1, epic: 1 } });
+    expect(repo.upsertPrices).toHaveBeenCalledWith([
+      expect.objectContaining({ listingId: "l-1", externalId: "730" }),
+      expect.objectContaining({ listingId: "l-3", externalId: "fortnite" }),
+    ], expect.objectContaining({ capturedAt: expect.any(Date) }));
+  });
+
+  it("segue mesmo se uma chamada de preço Steam falhar", async () => {
+    const repo = repository({ steamListings: [{ listingId: "l-1", externalId: "730" }] });
+    const result = await syncPrices({
+      repository: repo,
+      now: clock,
+      steam: { getAppPrice: vi.fn(async () => { throw new Error("indisponível"); }) },
+      epic: { getFreeGamesPromotions: vi.fn(async () => []) },
+    });
+    expect(result).toMatchObject({ status: "success", records: 0 });
   });
 });

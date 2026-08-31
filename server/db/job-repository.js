@@ -164,6 +164,14 @@ export async function createJobRepository({ databaseUrl, pool: suppliedPool } = 
       }));
     },
 
+    async listStoreListings(store) {
+      return enqueue((clientOrPool) => repositories.games.listByStore(store, clientOrPool));
+    },
+
+    async upsertPrices(entries, { capturedAt } = {}) {
+      return enqueue((clientOrPool) => transaction(clientOrPool, (client) => repositories.prices.upsert(entries, { capturedAt }, client)));
+    },
+
     async close() {
       await pool.end();
     },

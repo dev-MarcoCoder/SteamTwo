@@ -1,0 +1,14 @@
+{
+  "1245620": {
+    "success": true,
+    "data": {
+      "is_free": false,
+      "price_overview": {
+        "currency": "BRL",
+        "initial": 24999,
+        "final": 19999,
+        "discount_percent": 20
+      }
+    }
+  }
+}

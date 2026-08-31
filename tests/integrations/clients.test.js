@@ -42,6 +42,24 @@ describe("Steam client", () => {
   });
 });
 
+describe("Steam price", () => {
+  it("normaliza preço e desconto de um appid", async () => {
+    const price = await fixture("steam-price.json");
+    const fetchImpl = vi.fn().mockResolvedValueOnce(response(price));
+    const client = createSteamClient({ fetchImpl, countryCode: "BR" });
+    const result = await client.getAppPrice("1245620");
+    expect(result).toMatchObject({ externalId: "1245620", currency: "BRL", finalAmount: 19999, discountPercent: 20, isFree: false });
+    expect(String(fetchImpl.mock.calls[0][0])).toContain("appdetails");
+    expect(String(fetchImpl.mock.calls[0][0])).toContain("appids=1245620");
+  });
+
+  it("retorna null quando o appid não tem preço nem é gratuito", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(response({ "1": { success: true, data: {} } }));
+    const client = createSteamClient({ fetchImpl });
+    expect(await client.getAppPrice("1")).toBeNull();
+  });
+});
+
 describe("Epic client", () => {
   it("lê a coleção pública embutida sem inventar contagem de jogadores", async () => {
     const html = await fixtureText("epic-most-played.html");
@@ -72,6 +90,18 @@ describe("Epic client", () => {
       expect.objectContaining({ title: "Fortnite", rank: 1, metric: null, provider: "egdata-fallback" }),
       expect.objectContaining({ title: "Rocket League", rank: 2, metric: null, provider: "egdata-fallback" }),
     ]);
+  });
+
+  it("normaliza promoções gratuitas e com desconto", async () => {
+    const promotions = await fixture("epic-free-promotions.json");
+    const fetchImpl = vi.fn().mockResolvedValueOnce(response(promotions));
+    const client = createEpicClient({ fetchImpl });
+    const result = await client.getFreeGamesPromotions();
+    expect(result).toEqual([
+      expect.objectContaining({ externalId: "fortnite", finalAmount: 0, discountPercent: 0, isFree: true }),
+      expect.objectContaining({ externalId: "hades", initialAmount: 7999, finalAmount: 3999, discountPercent: 50, isFree: false }),
+    ]);
+    expect(String(fetchImpl.mock.calls[0][0])).toContain("freeGamesPromotions");
   });
 });
 

@@ -36,6 +36,9 @@ export const mockGames = [
     trend: 2,
     currentPlayers: 42180,
     historicalPopularity: 93.8,
+    prices: [
+      { store: "steam", currency: "BRL", initialAmount: 24999, finalAmount: 19999, discountPercent: 20, isFree: false },
+    ],
   },
   {
     id: 3,
@@ -71,6 +74,9 @@ export const mockGames = [
     trend: 3,
     currentPlayers: 35110,
     historicalPopularity: 89.6,
+    prices: [
+      { store: "steam", currency: "BRL", initialAmount: 17999, finalAmount: 7199, discountPercent: 60, isFree: false },
+    ],
   },
   {
     id: 5,
@@ -177,8 +183,26 @@ export const mockGames = [
     trend: 0,
     currentPlayers: 1128476,
     historicalPopularity: 99.4,
+    prices: [
+      { store: "steam", currency: "BRL", initialAmount: 0, finalAmount: 0, discountPercent: 0, isFree: true },
+    ],
   },
 ];
 
 export const mockUpdatedAt = "2026-08-24T18:00:00.000Z";
+
+/** Deterministic synthetic history so demo mode (no Postgres) can still render the chart and pass tests. */
+export function mockHistoryFor(slug) {
+  const game = mockGames.find((item) => item.slug === slug);
+  if (!game) return [];
+  const base = game.score;
+  const days = 30;
+  const end = Date.parse(mockUpdatedAt);
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(end - (days - 1 - index) * 86_400_000).toISOString().slice(0, 10);
+    const wave = Math.sin((index + game.id) / 4) * 3;
+    const score = Math.max(0, Math.min(100, base + wave));
+    return { date, score: Number(score.toFixed(1)), sources: { steam: null, epic: null } };
+  });
+}
 

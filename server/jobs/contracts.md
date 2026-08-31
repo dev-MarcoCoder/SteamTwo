@@ -11,6 +11,8 @@ repository.finishSyncRun({ id, status, finishedAt, records, error })
 repository.upsertCatalogGames(games, { source, capturedAt })
 repository.replaceRankingSnapshot({ source, capturedAt, entries })
 repository.upsertHistoricalPopularity(entries, { capturedAt })
+repository.listStoreListings(store) // -> [{ listingId, externalId }]
+repository.upsertPrices(entries, { capturedAt }) // entries: [{ listingId, currency, initialAmount, finalAmount, discountPercent, isFree }]
 ```
 
 `withAdvisoryLock` deve usar `pg_advisory_lock` ou `pg_try_advisory_lock` no

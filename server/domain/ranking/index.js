@@ -76,6 +76,36 @@ export function calculateWeeklyScores({ dailySnapshots, endAt = new Date() }) {
     .map((item, index) => ({ ...item, rank: index + 1 }));
 }
 
+/**
+ * Builds a per-day popularity time series for a single game from raw
+ * snapshot rows. A row with position === null represents a valid snapshot
+ * where the game did not appear (counts as zero); a day with no row at all
+ * for a source means that source had no valid snapshot that day and is
+ * excluded, matching calculateSnapshotScore's outage semantics.
+ */
+export function buildPopularityHistory(rows = []) {
+  const byDate = new Map();
+  for (const row of rows) {
+    const date = new Date(row.capturedAt).toISOString().slice(0, 10);
+    const perStore = byDate.get(date) ?? {};
+    perStore[row.source] = { status: "success", totalEntries: row.totalEntries, position: row.position ?? null };
+    byDate.set(date, perStore);
+  }
+  return [...byDate.entries()]
+    .map(([date, perStore]) => ({
+      date,
+      score: calculateSnapshotScore(perStore),
+      sources: Object.fromEntries(
+        Object.entries(perStore).map(([store, source]) => [
+          store,
+          source.position == null ? 0 : normalizePosition(source.position, source.totalEntries),
+        ]),
+      ),
+    }))
+    .filter((point) => point.score !== null)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function createAllTimeRanking(games) {
   return games.filter((game) => Number.isFinite(game.igdbPopularity))
     .map((game) => ({ gameId: game.id, score: game.igdbPopularity, metric: game.igdbPopularity }))

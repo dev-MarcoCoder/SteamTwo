@@ -1,8 +1,9 @@
 import * as cheerio from "cheerio";
-import { requestText } from "./http.js";
-import { normalizeEpicEntries } from "./normalizers.js";
+import { requestJson, requestText } from "./http.js";
+import { normalizeEpicEntries, normalizeEpicPromotions } from "./normalizers.js";
 
 const EGDATA_MOST_PLAYED_URL = "https://egdata.app/collections/most-played";
+const FREE_GAMES_PROMOTIONS_URL = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions";
 
 function walk(value, items) {
   if (Array.isArray(value)) return value.forEach((entry) => walk(entry, items));
@@ -90,6 +91,15 @@ export function createEpicClient({ locale = "pt-BR", fetchImpl } = {}) {
         });
         return parseEgdataMostPlayed(html);
       }
+    },
+    // Public but undocumented; covers Epic's own promoted/free catalog rather than a full price sweep.
+    async getFreeGamesPromotions() {
+      const url = new URL(FREE_GAMES_PROMOTIONS_URL);
+      url.searchParams.set("locale", locale);
+      url.searchParams.set("country", "BR");
+      url.searchParams.set("allowCountries", "BR");
+      const payload = await requestJson(url, { service: "epic-promotions", fetchImpl });
+      return normalizeEpicPromotions(payload);
     },
   };
 }

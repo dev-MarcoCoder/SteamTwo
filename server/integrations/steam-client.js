@@ -1,7 +1,8 @@
 import { requestJson } from "./http.js";
-import { normalizeSteamEntries } from "./normalizers.js";
+import { normalizeSteamEntries, normalizeSteamPrice } from "./normalizers.js";
 
 const BASE_URL = "https://api.steampowered.com/ISteamChartsService";
+const STORE_APPDETAILS_URL = "https://store.steampowered.com/api/appdetails";
 
 export function createSteamClient({ countryCode = "BR", fetchImpl } = {}) {
   async function get(endpoint, params = {}) {
@@ -20,6 +21,15 @@ export function createSteamClient({ countryCode = "BR", fetchImpl } = {}) {
     async getMostPlayedGames({ limit = 100 } = {}) {
       const payload = await get("GetMostPlayedGames", { limit });
       return normalizeSteamEntries(payload, "most_played_rank");
+    },
+    // The public appdetails endpoint only supports one appid per call reliably.
+    async getAppPrice(appId) {
+      const url = new URL(STORE_APPDETAILS_URL);
+      url.searchParams.set("appids", String(appId));
+      url.searchParams.set("cc", countryCode);
+      url.searchParams.set("filters", "price_overview");
+      const payload = await requestJson(url, { service: "steam-store", fetchImpl });
+      return normalizeSteamPrice(payload, appId);
     },
   };
 }
