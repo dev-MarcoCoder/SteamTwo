@@ -58,4 +58,11 @@ describe("SteamTwo API", () => {
     const response = await request(app).get("/api/promotions").query({ filter: "on-sale", store: "steam" }).expect(200);
     expect(response.body.items.some((item) => item.slug === "black-myth-wukong")).toBe(true);
   });
+
+  it("filtra promoções por gênero/categoria", async () => {
+    const response = await request(app).get("/api/promotions").query({ genre: "RPG" }).expect(200);
+    expect(response.body.items.some((item) => item.slug === "black-myth-wukong")).toBe(true);
+    expect(response.body.items.some((item) => item.slug === "hades-2")).toBe(false);
+    expect(response.body.items.every((item) => item.genres.includes("RPG"))).toBe(true);
+  });
 });

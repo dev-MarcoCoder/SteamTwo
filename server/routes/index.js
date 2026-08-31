@@ -100,6 +100,7 @@ export function createApiRouter({ catalogService = createCatalogService(), healt
       const query = z.object({
         store: storeSchema,
         filter: promoFilterSchema,
+        genre: z.string().max(60).optional(),
         page: pageSchema,
         limit: limitSchema,
       }).parse(request.query);

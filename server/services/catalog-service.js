@@ -125,17 +125,18 @@ export function createCatalogService({ repository } = {}) {
       };
     },
 
-    async promotions({ store = "all", filter = "all", page = 1, limit = 20 } = {}) {
+    async promotions({ store = "all", filter = "all", genre, page = 1, limit = 20 } = {}) {
       const games = (await source.listGames()).filter((game) => storeMatches(game, store));
       const withPromotion = games
         .map((game) => ({ ...game, promotion: bestPromotion(game.prices) }))
         .filter((game) => game.promotion && matchesPromoFilter(game.promotion, filter))
+        .filter((game) => !genre || game.genres.some((item) => item.toLocaleLowerCase("pt-BR") === genre.toLocaleLowerCase("pt-BR")))
         .sort((a, b) => (Number(b.promotion.isFree) - Number(a.promotion.isFree)) || (b.promotion.discountPercent - a.promotion.discountPercent));
       const start = (page - 1) * limit;
       return {
         items: withPromotion.slice(start, start + limit),
         pagination: { page, limit, total: withPromotion.length, pages: Math.ceil(withPromotion.length / limit) },
-        filters: { store, filter },
+        filters: { store, filter, genre: genre ?? null },
         sourceStatus: { steam: "fresh", epic: "partial" },
         updatedAt: mockUpdatedAt,
       };
