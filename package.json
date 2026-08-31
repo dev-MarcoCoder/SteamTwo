@@ -1,0 +1,38 @@
+{
+  "name": "steamtwo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:api": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview",
+    "db:migrate": "node-pg-migrate up",
+    "db:rollback": "node-pg-migrate down",
+    "sync:catalog": "node server/jobs/cli.js catalog",
+    "sync:rankings": "node server/jobs/cli.js rankings",
+    "sync:popularity": "node server/jobs/cli.js popularity",
+    "test": "vitest run tests/api tests/domain tests/integrations",
+    "test:watch": "vitest",
+    "test:sites": "node --test tests/sites-worker.test.mjs"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@vitejs/plugin-react": "5.0.4",
+    "cheerio": "^1.1.2",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "vite": "6.4.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^8.0.3",
+    "supertest": "^7.1.4",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "response": {
+    "items": [
+      { "rank": 1, "appid": 730, "name": "Counter-Strike 2", "peak_in_game": 1400000 },
+      { "rank": 2, "appid": 570, "name": "Dota 2", "peak_in_game": 720000 }
+    ]
+  }
+}
